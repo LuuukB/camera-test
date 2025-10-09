@@ -29,6 +29,8 @@ from farm_ng.core.events_file_reader import proto_from_json_file
 from farm_ng.core.uri_pb2 import Uri
 from turbojpeg import TurboJPEG
 
+import cv2
+
 os.environ["KIVY_NO_ARGS"] = "1"
 
 from kivy.config import Config  # noreorder # noqa: E402
@@ -126,6 +128,9 @@ class CameraApp(App):
                 except Exception as e:
                     logger.exception(f"Error decoding image: {e}")
                     continue
+
+                #hier test opencv
+                cv2.circle(img, (img.shape[1] // 2, img.shape[0] // 2), 100, (0, 0, 255), -1)
 
                 # create the opengl texture and set it to the image
                 texture = Texture.create(
