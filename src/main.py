@@ -30,6 +30,7 @@ from farm_ng.core.uri_pb2 import Uri
 from turbojpeg import TurboJPEG
 
 import cv2
+import torch
 
 os.environ["KIVY_NO_ARGS"] = "1"
 
@@ -62,6 +63,9 @@ class CameraApp(App):
         self.image_decoder = TurboJPEG()
 
         self.view_name = "rgb"
+
+        self.model = torch.hub.load('ultralytics/yolov5', 'yolov5n', pretrained=True)
+        self.model.conf = 0.25
 
         self.async_tasks: list[asyncio.Task] = []
 
@@ -130,7 +134,23 @@ class CameraApp(App):
                     continue
 
                 #hier test opencv
-                cv2.circle(img, (img.shape[1] // 2, img.shape[0] // 2), 100, (0, 0, 255), -1)
+                #cv2.circle(img, (img.shape[1] // 2, img.shape[0] // 2), 100, (0, 0, 255), -1)
+
+                # OpenCV BGR → RGB
+                frame_rgb = img[..., ::-1]
+
+                # detectie
+                results = self.model(frame_rgb)
+
+                # boxes der omheen
+                for *box, conf, cls in results.xyxy[0]:
+                    x1, y1, x2, y2 = map(int, box)
+                    label = self.labels.get(int(cls), "onbekend")
+                    color = (0, 255, 0)
+
+                    cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+                    cv2.putText(img, f"{label} {conf:.2f}", (x1, y1 - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
                 # create the opengl texture and set it to the image
                 texture = Texture.create(
