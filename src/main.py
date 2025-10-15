@@ -106,7 +106,7 @@ class CameraApp(App):
         #if oak0_client is None:
         logger.warning("No OAK camera config found. Falling back to laptop webcam.")
         self.use_webcam_fallback = True
-        self.webcam = cv2.VideoCapture(0)
+        self.webcam = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
         # stream camera frames
         if self.use_webcam_fallback:
