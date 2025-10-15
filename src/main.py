@@ -108,12 +108,18 @@ class CameraApp(App):
         self.use_webcam_fallback = True
         self.webcam = cv2.VideoCapture(0)
 
-
         # stream camera frames
-        self.tasks: list[asyncio.Task] = [
-            asyncio.create_task(self.stream_camera(oak0_client, view_name))
-            for view_name in self.STREAM_NAMES
-        ]
+        if self.use_webcam_fallback:
+            # Alleen RGB stream bij webcam fallback
+            self.tasks: list[asyncio.Task] = [
+                asyncio.create_task(self.stream_camera(None, "rgb"))
+            ]
+        else:
+            # Normaal gedrag: alle streams bij OAK
+            self.tasks: list[asyncio.Task] = [
+                asyncio.create_task(self.stream_camera(oak0_client, view_name))
+                for view_name in self.STREAM_NAMES
+            ]
 
         return await asyncio.gather(run_wrapper(), *self.tasks)
 
