@@ -68,6 +68,9 @@ class CameraApp(App):
         self.model.conf = 0.25
         self.labels = self.model.names
 
+        self.webcam: cv2.VideoCapture | None = None
+        self.use_webcam_fallback = False
+
         self.async_tasks: list[asyncio.Task] = []
 
     def build(self):
@@ -101,7 +104,10 @@ class CameraApp(App):
                 oak0_client = EventClient(config)
 
         if oak0_client is None:
-            raise RuntimeError(f"No {config.name} service config provided in service_config.json")
+            logger.warning("No OAK camera config found. Falling back to laptop webcam.")
+            self.use_webcam_fallback = True
+            self.webcam = cv2.VideoCapture(0)
+
 
         # stream camera frames
         self.tasks: list[asyncio.Task] = [
@@ -120,7 +126,38 @@ class CameraApp(App):
         while self.root is None:
             await asyncio.sleep(0.01)
 
-        rate = oak_client.config.subscriptions[0].every_n
+        rate = 1  # default 1 if using webcam fallback
+        if oak_client is not None:
+            rate = oak_client.config.subscriptions[0].every_n
+
+        if self.use_webcam_fallback and view_name == "rgb":
+            while True:
+                ret, img = self.webcam.read()
+                if not ret:
+                    logger.warning("Failed to read from webcam")
+                    await asyncio.sleep(0.01)
+                    continue
+
+                # YOLO detectie op RGB
+                frame_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                results = self.model(frame_rgb)
+
+                # Draw boxes
+                for *box, conf, cls in results.xyxy[0]:
+                    x1, y1, x2, y2 = map(int, box)
+                    label = self.labels.get(int(cls), "onbekend")
+                    color = (0, 255, 0)
+                    cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+                    cv2.putText(img, f"{label} {conf:.2f}", (x1, y1 - 10),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+
+                # Create OpenGL texture
+                texture = Texture.create(size=(img.shape[1], img.shape[0]), icolorfmt="bgr")
+                texture.flip_vertical()
+                texture.blit_buffer(bytes(img.data), colorfmt="bgr", bufferfmt="ubyte", mipmap_generation=False)
+                self.root.ids[view_name].texture = texture
+                await asyncio.sleep(0.01)
+            return
 
         async for event, payload in oak_client.subscribe(
             SubscribeRequest(uri=Uri(path=f"/{view_name}"), every_n=rate),
@@ -137,23 +174,17 @@ class CameraApp(App):
                 #hier test opencv
                 #cv2.circle(img, (img.shape[1] // 2, img.shape[0] // 2), 100, (0, 0, 255), -1)
 
-                cam = cv2.VideoCapture(0)
-                # OpenCV BGR → RGB
-                frame_rgb = img[..., ::-1]
-
-                ret, frame_rgb = cam.read()
-                # detectie
-                results = self.model(frame_rgb)
-
-                # boxes der omheen
-                for *box, conf, cls in results.xyxy[0]:
-                    x1, y1, x2, y2 = map(int, box)
-                    label = self.labels.get(int(cls), "onbekend")
-                    color = (0, 255, 0)
-
-                    cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-                    cv2.putText(img, f"{label} {conf:.2f}", (x1, y1 - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                #zelfde code als hierboven moet ik nog methode voor aanmaken
+                if view_name == "rgb":
+                    frame_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                    results = self.model(frame_rgb)
+                    for *box, conf, cls in results.xyxy[0]:
+                        x1, y1, x2, y2 = map(int, box)
+                        label = self.labels.get(int(cls), "onbekend")
+                        color = (0, 255, 0)
+                        cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
+                        cv2.putText(img, f"{label} {conf:.2f}", (x1, y1 - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
                 # create the opengl texture and set it to the image
                 texture = Texture.create(
