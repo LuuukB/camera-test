@@ -99,9 +99,9 @@ class CameraApp(App):
 
         #oak0_client: EventClient | None = None
 
-        #for config in config_list.configs:
-         #   if config.name == "oak0":
-          #      oak0_client = EventClient(config)
+        for config in config_list.configs:
+           if config.name == "oak0":
+               oak0_client = EventClient(config)
 
         #if oak0_client is None:
         logger.warning("No OAK camera config found. Falling back to laptop webcam.")
