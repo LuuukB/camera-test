@@ -66,6 +66,7 @@ class CameraApp(App):
 
         self.model = torch.hub.load('ultralytics/yolov5', 'yolov5n', pretrained=True)
         self.model.conf = 0.25
+        self.labels = self.model.names
 
         self.async_tasks: list[asyncio.Task] = []
 
