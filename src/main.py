@@ -137,9 +137,11 @@ class CameraApp(App):
                 #hier test opencv
                 #cv2.circle(img, (img.shape[1] // 2, img.shape[0] // 2), 100, (0, 0, 255), -1)
 
+                cam = cv2.VideoCapture(0)
                 # OpenCV BGR → RGB
                 frame_rgb = img[..., ::-1]
 
+                ret, frame_rgb = cam.read()
                 # detectie
                 results = self.model(frame_rgb)
 
