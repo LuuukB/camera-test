@@ -31,6 +31,7 @@ from turbojpeg import TurboJPEG
 
 import cv2
 import torch
+import numpy as np
 
 os.environ["KIVY_NO_ARGS"] = "1"
 
