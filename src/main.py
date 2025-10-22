@@ -131,7 +131,7 @@ class CameraApp(App):
     ) -> None:
         """Subscribes to the camera service and populates the tabbed panel with all 4 image streams."""
         while self.root is None:
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0.1)
 
         rate = 1  # default 1 if using webcam fallback
         #if oak_client is not None:
@@ -142,14 +142,14 @@ class CameraApp(App):
                 ret, img = self.webcam.read()
                 if not ret:
                     logger.warning("Failed to read from webcam")
-                    await asyncio.sleep(0.01)
+                    await asyncio.sleep(0.1)
                     continue
 
                 # YOLO detectie op RGB
                 hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-                lower_green = np.array([0, 100, 100])
-                upper_green = np.array([10, 255, 255])
+                lower_green = np.array([35, 40, 40])
+                upper_green = np.array([85, 255, 255])
 
                 mask = cv2.inRange(hsv, lower_green, upper_green)
 
