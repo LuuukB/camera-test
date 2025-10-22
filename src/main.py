@@ -145,17 +145,14 @@ class CameraApp(App):
                     continue
 
                 # YOLO detectie op RGB
-                frame_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-                results = self.model(frame_rgb)
+                hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
-                # Draw boxes
-                for *box, conf, cls in results.xyxy[0]:
-                    x1, y1, x2, y2 = map(int, box)
-                    label = self.labels.get(int(cls), "onbekend")
-                    color = (0, 255, 0)
-                    cv2.rectangle(img, (x1, y1), (x2, y2), color, 2)
-                    cv2.putText(img, f"{label} {conf:.2f}", (x1, y1 - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
+                lower_green = np.array([0, 100, 100])
+                upper_green = np.array([10, 255, 255])
+
+                mask = cv2.inRange(hsv, lower_green, upper_green)
+
+                img = cv2.bitwise_and(img, img, mask=mask)
 
                 # Create OpenGL texture
                 texture = Texture.create(size=(img.shape[1], img.shape[0]), icolorfmt="bgr")
